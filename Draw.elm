@@ -67,7 +67,6 @@ lines width points =
                     Svg.Attributes.strokeWidth width
                 ] [] :: (lines width (b :: xs))
         _ -> []
-    
 
 
 -- MODEL

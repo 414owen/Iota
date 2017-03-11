@@ -3,7 +3,7 @@ var ws = require('ws');
 
 function drawServ(wss) {
 	var lastPoint = "100,100";
-	const valid = /^\d+,\d+$/;
+	const valid = /^-?\d+,-?\d+$/;
 
 	// Broadcast to all
 	wss.broadcast = function broadcast(data) {
