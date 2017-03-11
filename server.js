@@ -2,8 +2,8 @@
 var ws = require('ws');
 
 function drawServ(wss) {
-	var lastPoint = "100,100";
-	const valid = /^-?\d+,-?\d+$/;
+	var lastPoint = "100,100,ccc";
+	const valid = /^-?\d+,-?\d+,[0-9a-f]{3}$/;
 
 	// Broadcast to all
 	wss.broadcast = function broadcast(data) {
@@ -16,8 +16,9 @@ function drawServ(wss) {
 
 	// On message recieved
 	function incoming(data) {
+		console.log("Recieved", data);
 		if (valid.test(data)) {
-			console.log("Recieved", data);
+			console.log("Valid");
 			wss.broadcast(data);
 			lastPoint = data;
 		}
