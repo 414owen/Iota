@@ -4,7 +4,7 @@ import Html.Attributes
 import List exposing (map, head, append, take, tail)
 import Mouse exposing (moves, clicks)
 import Random
-import Svg exposing (polyline, svg, line)
+import Svg exposing (circle, svg, line)
 import Svg.Attributes
 import Svg.Events
 import Task
@@ -19,6 +19,8 @@ sketchWeightStr = toString sketchWeight
 zeroDims = {width = 0, height = 0}
 zeroPoint = {x = 0, y = 0}
 defaultColor = "#ccc"
+backgroundColor = "#111"
+minChannel = 119
 zeroPointCol = {x = zeroPoint.x, y = zeroPoint.y, col = defaultColor}
 
 toHexDig: Int -> String
@@ -54,7 +56,7 @@ toHex n = if n < 0 then String.cons '-' (posToHex (negate n))
     else if n == 0 then "0" else posToHex n
 
 chanFromInt: Int -> Int -> String
-chanFromInt i c = toHex ((Bitwise.shiftRightBy (c * 8) i) % 256)
+chanFromInt i c = toHex ((Bitwise.shiftRightBy (c * 8) i) % (256 - minChannel) + minChannel)
 
 chansFromInt: Int -> String
 chansFromInt i = String.concat (map (chanFromInt i) [0, 1, 2])
@@ -142,24 +144,37 @@ toPointStrCols p = map toPointStrCol p
 toPointStrCol: PointCol -> PointStrCol
 toPointStrCol {x, y, col} = {x = toString x, y = toString y, col = col} 
 
+mapTwo: (a -> a -> b) -> List a -> List b
+mapTwo f lst = case lst of
+    b1 :: b2 :: bs -> f b1 b2 :: (mapTwo f (b2 :: bs))
+    _ -> []
+
+pointsStrColToLine: String -> PointStrCol -> PointStrCol -> Svg.Svg Msg
+pointsStrColToLine width a b = line [
+        Svg.Attributes.stroke b.col,
+        Svg.Attributes.strokeLinecap "round",
+        Svg.Attributes.fill "none",
+        Svg.Attributes.x1 a.x,
+        Svg.Attributes.x2 b.x,
+        Svg.Attributes.y1 a.y,
+        Svg.Attributes.y2 b.y,
+        Svg.Attributes.strokeWidth width
+    ] []
 
 lines: String -> List PointStrCol -> List (Svg.Svg Msg)
-lines width points = 
-    case points of 
-        a :: b :: xs -> 
-                line [
-                    Svg.Attributes.stroke b.col,
-                    Svg.Attributes.strokeLinecap "round",
-                    Svg.Attributes.strokeLinejoin "round",
-                    Svg.Attributes.fill "none",
-                    Svg.Attributes.x1 a.x,
-                    Svg.Attributes.x2 b.x,
-                    Svg.Attributes.y1 a.y,
-                    Svg.Attributes.y2 b.y,
-                    Svg.Attributes.strokeWidth width
-                ] [] :: (lines width (b :: xs))
-        _ -> []
+lines width points = mapTwo (pointsStrColToLine width) points
 
+pointStrColToCircle: PointStrCol -> Svg.Svg Msg
+pointStrColToCircle p = circle [
+        Svg.Attributes.fill p.col,
+        Svg.Attributes.stroke"none",
+        Svg.Attributes.cx p.x,
+        Svg.Attributes.cy p.y,
+        Svg.Attributes.r "10"
+    ] []
+
+nodes: List PointStrCol -> List (Svg.Svg Msg)
+nodes lst = map pointStrColToCircle lst
 
 -- MAIN
 
@@ -228,9 +243,9 @@ update msg model =
         AddPoint a -> case a of 
                 Just p -> 
                     let newPoint = addPointsOneCol model.window.halfway p
-                    in ({model | rawPoints = p :: model.rawPoints, 
+                    in ({model | rawPoints = model.rawPoints ++ [p], 
                             lastPoint = newPoint, 
-                            points = toPointStrCol newPoint :: model.points}, Cmd.none)
+                            points = model.points ++ [(toPointStrCol newPoint)]}, Cmd.none)
                 _ -> (model, Cmd.none)
         NewColor c -> ({model | color = Just c}, Cmd.none)
         Position p -> ({model | mouse = Just p}, Cmd.none)
@@ -263,7 +278,7 @@ view model =
     in
         Html.div [
             Html.Attributes.style [
-                ("background-color", "#222"),
+                ("background-color", "#111"),
                 ("overflow", "hidden"),
                 ("width" , "100%"),
                 ("height", "100%")
@@ -276,6 +291,7 @@ view model =
                 Svg.Events.onMouseDown (SendPoint mouseRel)
             ] (List.concat [
                 lines lineWeightStr model.points,
+                nodes model.points,
                 lines sketchWeightStr (map colPointToStr [model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)])
             ])
         ]
