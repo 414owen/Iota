@@ -16,18 +16,19 @@ function drawServ(wss) {
 
 	// On message recieved
 	function incoming(data) {
-		console.log("Recieved", data);
+		// console.log("Recieved", data);
 		if (valid.test(data)) {
-			console.log("Valid");
-			wss.broadcast(data);
+			// console.log("Valid");
+			wss.broadcast("p" + data);
 			lastPoint = data;
 		}
 	}
 
 	// On new connection
 	wss.on('connection', function connection(ws) {
-		console.log("Client connected");
-		ws.send(lastPoint);
+		// console.log("Client connected");
+		ws.send("p" + lastPoint);
+		ws.send("u" + wss.clients.size);
 		ws.on('message', incoming);
 	});
 }

@@ -4,7 +4,7 @@ import Html.Attributes
 import List exposing (map, head, append, take, tail)
 import Mouse exposing (moves, clicks)
 import Random
-import Svg exposing (circle, svg, line)
+import Svg exposing (circle, svg, line, text, text_)
 import Svg.Attributes
 import Svg.Events
 import Task
@@ -205,6 +205,7 @@ type alias Model =
     , mouse : Maybe Point
     , rawPoints: List PointCol
     , points: List PointStrCol
+    , users: String
     , lastPoint: PointCol
     }
 
@@ -215,6 +216,7 @@ initialModel =
     , rawPoints = []
     , points = []
     , loaded = False
+    , users = "?"
     , color  = Nothing
     , lastPoint = zeroPointCol
     }
@@ -233,28 +235,38 @@ type Msg =
     WindowSize Window.Size
     | NewColor String
     | Position Mouse.Position
-    | AddPoint (Maybe PointCol)
+    | AddPoint PointCol
+    | UpdateUsers Int
     | SendPoint Point
+    | NoMessage
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
+        NoMessage -> (model, Cmd.none)
         SendPoint p -> (model, WebSocket.send server (linePoint p (Debug.log "String" (Maybe.withDefault defaultColor model.color))))
-        AddPoint a -> case a of 
-                Just p -> 
-                    let newPoint = addPointsOneCol model.window.halfway p
-                    in ({model | rawPoints = model.rawPoints ++ [p], 
-                            lastPoint = newPoint, 
-                            points = model.points ++ [(toPointStrCol newPoint)]}, Cmd.none)
-                _ -> (model, Cmd.none)
+        AddPoint p -> let newPoint = addPointsOneCol model.window.halfway p
+            in ({model | rawPoints = model.rawPoints ++ [p], 
+                lastPoint = p, 
+                points = model.points ++ [(toPointStrCol newPoint)]}, Cmd.none)
         NewColor c -> ({model | color = Just c}, Cmd.none)
         Position p -> ({model | mouse = Just p}, Cmd.none)
+        UpdateUsers u -> ({model | users = toString u}, Cmd.none)
         WindowSize {width, height} ->
             let newHalf = {x = width // 2, y = height // 2}
             in ({model | window = {dims = {width = width, height = height}, 
                 halfway = newHalf},
                 points = rawsToPoints newHalf model.rawPoints} , Cmd.none)
 
+decodeMessage: String -> Msg
+decodeMessage m = case String.uncons (Debug.log "String" m) of
+    Just ('p', s) -> case strToPointCol s of
+        Just p -> AddPoint p
+        _ -> NoMessage
+    Just ('u', s) -> case String.toInt s of
+        Ok u -> UpdateUsers u
+        _ -> NoMessage
+    _ -> NoMessage
 
 -- SUBSCRIPTIONS
 
@@ -263,11 +275,20 @@ subscriptions model =
     Sub.batch [
         Window.resizes WindowSize,
         Mouse.moves Position,
-        WebSocket.listen server (\x -> strToPointCol x |> AddPoint)
+        WebSocket.listen server decodeMessage
     ]
 
 
 -- VIEW
+
+description = text_ [
+        Svg.Attributes.textAnchor "start",
+        Svg.Attributes.x "0",
+        Svg.Attributes.fontSize "20",
+        Svg.Attributes.fontFamily "Sans",
+        Svg.Attributes.y "20",
+        Svg.Attributes.fill defaultColor
+    ] [text ("This is Iota, a collaborative line-art doodling website")]
 
 view: Model -> Html.Html Msg
 view model =
@@ -289,9 +310,19 @@ view model =
                 Svg.Attributes.height (numPixels model.window.dims.height),
                 Svg.Attributes.viewBox (viewbox model),
                 Svg.Events.onMouseDown (SendPoint mouseRel)
-            ] (List.concat [
+            ] 
+            (List.concat [
+                [description, 
+                text_ [
+                    Svg.Attributes.textAnchor "start",
+                    Svg.Attributes.x "0",
+                    Svg.Attributes.fontSize "20",
+                    Svg.Attributes.fontFamily "Sans",
+                    Svg.Attributes.y "50",
+                    Svg.Attributes.fill defaultColor
+                ] [text ("Users online: " ++ model.users)]],
                 lines lineWeightStr model.points,
                 nodes model.points,
-                lines sketchWeightStr (map colPointToStr [model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)])
+                lines sketchWeightStr (map colPointToStr [addPointsOneCol model.window.halfway model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)])
             ])
         ]
