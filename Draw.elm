@@ -10,7 +10,6 @@ import Mouse exposing (moves, clicks)
 import List exposing (map, head, append, take)
 import WebSocket
 
-maxPoints = 50
 server = "wss://owen.cafe:8000"
 lineWeight = 5
 sketchWeight = lineWeight // 2
@@ -52,20 +51,39 @@ viewbox model = String.join " " (map toString [0, 0, model.window.dims.width, mo
 headAndTail: a -> List a -> List a
 headAndTail a lst = a :: lst
 
-lines width addon points = polyline [
-        Svg.Attributes.stroke "#ccc",
-        Svg.Attributes.strokeLinecap "round",
-        Svg.Attributes.strokeLinejoin "round",
-        Svg.Attributes.fill "none",
-        Svg.Attributes.strokeWidth width,
-        Svg.Attributes.points (pointsToStr (map (addPoints addon) points))
-    ] []
+lines: String -> List PointStr -> List (Svg.Svg Msg)
+lines width points = 
+    case points of 
+        a :: b :: xs -> 
+                line [
+                    Svg.Attributes.stroke "#ccc",
+                    Svg.Attributes.strokeLinecap "round",
+                    Svg.Attributes.strokeLinejoin "round",
+                    Svg.Attributes.fill "none",
+                    Svg.Attributes.x1 a.x,
+                    Svg.Attributes.x2 b.x,
+                    Svg.Attributes.y1 a.y,
+                    Svg.Attributes.y2 b.y,
+                    Svg.Attributes.strokeWidth width
+                ] [] :: (lines width (b :: xs))
+        _ -> []
+    
 
 
 -- MODEL
 
 type alias Point = {x: Int, y: Int}
+type alias PointStr = {x: String, y: String}
 type alias Dimension = {width: Int, height: Int}
+
+rawsToPoints: Point -> List Point -> List PointStr
+rawsToPoints a p = map (\b -> toPointStr (addPoints a b)) p
+
+toPointStrs: List Point -> List PointStr
+toPointStrs p = map toPointStr p
+
+toPointStr: Point -> PointStr
+toPointStr {x, y} = {x = toString x, y = toString y} 
 
 type alias Model = 
     { window: {
@@ -75,7 +93,8 @@ type alias Model =
     , loaded: Bool
     , color : Maybe String
     , mouse : Maybe Point
-    , points: List Point
+    , rawPoints: List Point
+    , points: List PointStr
     , lastPoint: Point
     }
 
@@ -88,6 +107,7 @@ initialModel: Model
 initialModel = 
     { window = {dims = zeroDims, halfway = zeroPoint}
     , mouse = Nothing
+    , rawPoints = []
     , points = []
     , loaded = False
     , color  = Nothing
@@ -113,12 +133,18 @@ update msg model =
         SendPoint p -> (model, WebSocket.send server (linePoint p))
         AddPoint a -> 
             case a of 
-                Just p -> ({model | points = take maxPoints (p :: model.points), lastPoint = p}, Cmd.none)
+                Just p -> 
+                    let newPoint = addPoints model.window.halfway p
+                    in ({model | rawPoints = p :: model.rawPoints, 
+                            lastPoint = newPoint, 
+                            points = toPointStr newPoint :: model.points}, Cmd.none)
                 _      -> (model, Cmd.none)
         Position p -> ({model | mouse  = Just p}, Cmd.none)
         WindowSize {width, height} ->
-            ({model | window = {dims = {width = width, height = height}, 
-                halfway = {x = width // 2, y = height // 2}}} , Cmd.none)
+            let newHalf = {x = width // 2, y = height // 2}
+            in ({model | window = {dims = {width = width, height = height}, 
+                halfway = newHalf},
+                points = rawsToPoints newHalf model.rawPoints} , Cmd.none)
 
 
 -- SUBSCRIPTIONS
@@ -152,9 +178,9 @@ view model =
                 Svg.Attributes.width  (numPixels model.window.dims.width ),
                 Svg.Attributes.height (numPixels model.window.dims.height),
                 Svg.Attributes.viewBox (viewbox model),
-                Svg.Events.onClick (SendPoint mouseRel)
-            ] [
-                lines (toString lineWeight) model.window.halfway model.points,
-                lines (toString sketchWeight) model.window.halfway [model.lastPoint, mouseRel]
-            ]
+                Svg.Events.onMouseDown (SendPoint mouseRel)
+            ] (List.concat [
+                lines (toString lineWeight) model.points,
+                lines (toString sketchWeight) [toPointStr model.lastPoint, toPointStr (Maybe.withDefault model.window.halfway model.mouse)]
+            ])
         ]

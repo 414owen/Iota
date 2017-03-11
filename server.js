@@ -3,7 +3,7 @@ var ws = require('ws');
 
 function drawServ(wss) {
 	var lastPoint = "100,100";
-	const numTest = /\d+/;
+	const numTest = /^\d+$/;
 
 	function validPoint(p) {
 		const parts = p.split(",").map(function(a) {return numTest.test(a);})
@@ -19,16 +19,18 @@ function drawServ(wss) {
 		});
 	};
 
+	function incoming(data) {
+		if (validPoint(data)) {
+			console.log("Recieved", data);
+			wss.broadcast(data);
+			lastPoint = data;
+		}
+	}
+
 	wss.on('connection', function connection(ws) {
 		console.log("Client connected");
 		ws.send(lastPoint);
-		ws.on('message', function incoming(data) {
-			if (validPoint(data)) {
-				console.log("Recieved", data);
-				wss.broadcast(data);
-				lastPoint = data;
-			}
-		});
+		ws.on('message', incoming);
 	});
 }
 module.exports = drawServ;
