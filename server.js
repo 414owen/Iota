@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 var ws = require('ws');
 
 function drawServ(wss) {
