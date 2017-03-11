@@ -3,7 +3,6 @@ import Html
 import Html.Attributes
 import Window
 import Task
-import Debug exposing (log)
 import Svg exposing (polyline, svg, line)
 import Svg.Attributes
 import Svg.Events
@@ -12,7 +11,7 @@ import List exposing (map, head, append, take)
 import WebSocket
 
 maxPoints = 50
-server = "ws://localhost:8001"
+server = "wss://owen.cafe:8000"
 lineWeight = 5
 sketchWeight = lineWeight // 2
 
@@ -105,14 +104,12 @@ init =
 type Msg = 
     WindowSize Window.Size
     | Position Mouse.Position
-    | Log String
     | AddPoint (Maybe Point)
     | SendPoint Point
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        Log text -> (log "Model" model, Cmd.none)
         SendPoint p -> (model, WebSocket.send server (linePoint p))
         AddPoint a -> 
             case a of 
@@ -140,7 +137,6 @@ subscriptions model =
 view: Model -> Html.Html Msg
 view model =
     let
-        test = log "Model" model
         str = toString model
         mouseRel = subPoints (Maybe.withDefault model.window.halfway model.mouse) model.window.halfway
     in

@@ -1,22 +1,33 @@
-const WebSocket = require('ws');
+var ws = require('ws');
 
-const port = 8001;
-const wss = new WebSocket.Server({ port: port });
-console.log("Listening on port", port);
+function drawServ(wss) {
+	var lastPoint = "100,100";
+	const numTest = /\d+/;
 
-// Broadcast to all.
-wss.broadcast = function broadcast(data) {
-	wss.clients.forEach(function each(client) {
-		if (client.readyState === WebSocket.OPEN) {
-			client.send(data);
-		}
+	function validPoint(p) {
+		const parts = p.split(",").map(function(a) {return numTest.test(a);})
+		return parts.length == 2 && parts[0] && parts[1];
+	}
+
+	// Broadcast to all
+	wss.broadcast = function broadcast(data) {
+		wss.clients.forEach(function each(client) {
+			if (client.readyState === ws.OPEN) {
+				client.send(data);
+			}
+		});
+	};
+
+	wss.on('connection', function connection(ws) {
+		console.log("Client connected");
+		ws.send(lastPoint);
+		ws.on('message', function incoming(data) {
+			if (validPoint(data)) {
+				console.log("Recieved", data);
+				wss.broadcast(data);
+				lastPoint = data;
+			}
+		});
 	});
-};
-
-wss.on('connection', function connection(ws) {
-	console.log("Client connected");
-	ws.on('message', function incoming(data) {
-		console.log("Recieved message");
-		wss.broadcast(data);
-	});
-});
+}
+module.exports = drawServ;
