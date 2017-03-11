@@ -283,10 +283,10 @@ subscriptions model =
 
 description = text_ [
         Svg.Attributes.textAnchor "start",
-        Svg.Attributes.x "0",
+        Svg.Attributes.x "10",
         Svg.Attributes.fontSize "20",
         Svg.Attributes.fontFamily "Sans",
-        Svg.Attributes.y "20",
+        Svg.Attributes.y "30",
         Svg.Attributes.fill defaultColor
     ] [text ("This is Iota, a collaborative line-art doodling website")]
 
@@ -315,10 +315,10 @@ view model =
                 [description, 
                 text_ [
                     Svg.Attributes.textAnchor "start",
-                    Svg.Attributes.x "0",
+                    Svg.Attributes.x "10",
                     Svg.Attributes.fontSize "20",
                     Svg.Attributes.fontFamily "Sans",
-                    Svg.Attributes.y "50",
+                    Svg.Attributes.y "60",
                     Svg.Attributes.fill defaultColor
                 ] [text ("Users online: " ++ model.users)]],
                 lines lineWeightStr model.points,

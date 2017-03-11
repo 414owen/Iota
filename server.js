@@ -24,12 +24,15 @@ function drawServ(wss) {
 		}
 	}
 
+	function updateUsers() { wss.broadcast("u" + wss.clients.size); }
+
 	// On new connection
 	wss.on('connection', function connection(ws) {
 		// console.log("Client connected");
 		ws.send("p" + lastPoint);
-		ws.send("u" + wss.clients.size);
+		updateUsers();
 		ws.on('message', incoming);
+		ws.on('close', updateUsers);
 	});
 }
 module.exports = drawServ;
