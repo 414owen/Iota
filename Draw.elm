@@ -149,6 +149,9 @@ mapTwo f lst = case lst of
     b1 :: b2 :: bs -> f b1 b2 :: (mapTwo f (b2 :: bs))
     _ -> []
 
+pointAndCol: Point -> String -> PointCol
+pointAndCol {x, y} c = {x = x, y = y, col = c}
+
 pointsStrColToLine: String -> PointStrCol -> PointStrCol -> Svg.Svg Msg
 pointsStrColToLine width a b = line [
         Svg.Attributes.stroke b.col,
@@ -241,14 +244,15 @@ type Msg =
     | NoMessage
 
 update: Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-    case msg of
+update msg model = 
+    let col = Maybe.withDefault defaultColor model.color 
+        newPointModel p = let newPoint = addPointsOneCol model.window.halfway p in 
+        {model | rawPoints = model.rawPoints ++ [p], 
+                lastPoint = p, points = model.points ++ [(toPointStrCol newPoint)]}
+    in case msg of
         NoMessage -> (model, Cmd.none)
-        SendPoint p -> (model, WebSocket.send server (linePoint p (Debug.log "String" (Maybe.withDefault defaultColor model.color))))
-        AddPoint p -> let newPoint = addPointsOneCol model.window.halfway p
-            in ({model | rawPoints = model.rawPoints ++ [p], 
-                lastPoint = p, 
-                points = model.points ++ [(toPointStrCol newPoint)]}, Cmd.none)
+        SendPoint p -> (newPointModel (pointAndCol p (String.cons '#' col)), (WebSocket.send server (linePoint p col)))
+        AddPoint p -> (newPointModel p, Cmd.none)
         NewColor c -> ({model | color = Just c}, Cmd.none)
         Position p -> ({model | mouse = Just p}, Cmd.none)
         UpdateUsers u -> ({model | users = toString u}, Cmd.none)
