@@ -244,15 +244,15 @@ type Msg =
     | SendPoint Point
     | NoMessage
 
-limitPoints: List a -> List a
-limitPoints lst = List.reverse (List.take maxPoints (List.reverse lst))
+consAndLimit: a -> List a -> List a
+consAndLimit el lst = List.take maxPoints (el :: (lst))
 
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
     let col = Maybe.withDefault defaultColor model.color 
         newPointModel p = let newPoint = addPointsOneCol model.window.halfway p in 
-        {model | rawPoints = limitPoints (model.rawPoints ++ [p]), 
-                lastPoint = p, points = limitPoints (model.points ++ [(toPointStrCol newPoint)])}
+        {model | rawPoints = consAndLimit p model.rawPoints,
+                lastPoint = p, points = consAndLimit (toPointStrCol newPoint) model.points}
     in case msg of
         NoMessage -> (model, Cmd.none)
         SendPoint p -> (newPointModel (pointAndCol p (String.cons '#' col)), (WebSocket.send server (linePoint p col)))
