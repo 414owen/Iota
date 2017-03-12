@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var ws = require('ws');
 function drawServ(wss) {
-	const maxPoints = 60;
+	const maxPoints = 100;
 	const lastPoints = ["100,100,ccc"];
 	const valid = /^-?\d+,-?\d+,[0-9a-f]{3}$/;
 	wss.broadcast = function broadcast(wsEx, exclude, data) {

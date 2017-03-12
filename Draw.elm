@@ -12,6 +12,7 @@ import WebSocket
 import Window
 
 server = "wss://owen.cafe:8000"
+maxPoints = 100 
 lineWeight = 5
 sketchWeight = lineWeight // 2
 lineWeightStr = toString lineWeight
@@ -243,12 +244,15 @@ type Msg =
     | SendPoint Point
     | NoMessage
 
+limitPoints: List a -> List a
+limitPoints lst = List.reverse (List.take maxPoints (List.reverse lst))
+
 update: Msg -> Model -> (Model, Cmd Msg)
 update msg model = 
     let col = Maybe.withDefault defaultColor model.color 
         newPointModel p = let newPoint = addPointsOneCol model.window.halfway p in 
-        {model | rawPoints = model.rawPoints ++ [p], 
-                lastPoint = p, points = model.points ++ [(toPointStrCol newPoint)]}
+        {model | rawPoints = limitPoints (model.rawPoints ++ [p]), 
+                lastPoint = p, points = limitPoints (model.points ++ [(toPointStrCol newPoint)])}
     in case msg of
         NoMessage -> (model, Cmd.none)
         SendPoint p -> (newPointModel (pointAndCol p (String.cons '#' col)), (WebSocket.send server (linePoint p col)))
