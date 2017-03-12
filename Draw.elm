@@ -312,6 +312,9 @@ view model =
                 Svg.Events.onMouseDown (SendPoint mouseRel)
             ] 
             (List.concat [
+                lines lineWeightStr model.points,
+                nodes model.points,
+                lines sketchWeightStr (map colPointToStr [addPointsOneCol model.window.halfway model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)]),
                 [description, 
                 text_ [
                     Svg.Attributes.textAnchor "start",
@@ -320,9 +323,6 @@ view model =
                     Svg.Attributes.fontFamily "Sans",
                     Svg.Attributes.y "60",
                     Svg.Attributes.fill defaultColor
-                ] [text ("Users online: " ++ model.users)]],
-                lines lineWeightStr model.points,
-                nodes model.points,
-                lines sketchWeightStr (map colPointToStr [addPointsOneCol model.window.halfway model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)])
+                ] [text ("Users online: " ++ model.users)]]
             ])
         ]
