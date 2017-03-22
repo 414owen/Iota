@@ -11,8 +11,8 @@ import Task
 import WebSocket
 import Window
 
-server = "wss://owen.cafe:8000"
-maxPoints = 100 
+server = "wss://owen.cafe/iota/serv/"
+maxPoints = 1000
 lineWeight = 5
 sketchWeight = lineWeight // 2
 lineWeightStr = toString lineWeight
@@ -180,6 +180,7 @@ pointStrColToCircle p = circle [
 nodes: List PointStrCol -> List (Svg.Svg Msg)
 nodes lst = map pointStrColToCircle lst
 
+
 -- MAIN
 
 main =
@@ -255,7 +256,8 @@ update msg model =
                 lastPoint = p, points = consAndLimit (toPointStrCol newPoint) model.points}
     in case msg of
         NoMessage -> (model, Cmd.none)
-        SendPoint p -> (newPointModel (pointAndCol p (String.cons '#' col)), (WebSocket.send server (linePoint p col)))
+        SendPoint pp -> let p = subPoints pp model.window.halfway in
+            (newPointModel (pointAndCol p (String.cons '#' col)), (WebSocket.send server (linePoint p col)))
         AddPoint p -> (newPointModel p, Cmd.none)
         NewColor c -> ({model | color = Just c}, Cmd.none)
         Position p -> ({model | mouse = Just p}, Cmd.none)
@@ -267,7 +269,7 @@ update msg model =
                 points = rawsToPoints newHalf model.rawPoints} , Cmd.none)
 
 decodeMessage: String -> Msg
-decodeMessage m = case String.uncons (Debug.log "String" m) of
+decodeMessage m = case String.uncons m of
     Just ('p', s) -> case strToPointCol s of
         Just p -> AddPoint p
         _ -> NoMessage
@@ -276,13 +278,14 @@ decodeMessage m = case String.uncons (Debug.log "String" m) of
         _ -> NoMessage
     _ -> NoMessage
 
+
 -- SUBSCRIPTIONS
 
 subscriptions: Model -> Sub Msg
 subscriptions model =
     Sub.batch [
         Window.resizes WindowSize,
-        Mouse.moves Position,
+        Mouse.downs SendPoint,
         WebSocket.listen server decodeMessage
     ]
 
@@ -316,13 +319,12 @@ view model =
             svg [
                 Svg.Attributes.width  (numPixels model.window.dims.width ),
                 Svg.Attributes.height (numPixels model.window.dims.height),
-                Svg.Attributes.viewBox (viewbox model),
-                Svg.Events.onMouseDown (SendPoint mouseRel)
+                Svg.Attributes.viewBox (viewbox model)
             ] 
             (List.concat [
                 lines lineWeightStr model.points,
                 nodes model.points,
-                lines sketchWeightStr (map colPointToStr [addPointsOneCol model.window.halfway model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)]),
+                -- lines sketchWeightStr (map colPointToStr [addPointsOneCol model.window.halfway model.lastPoint, makeDefColPoint (Maybe.withDefault model.window.halfway model.mouse)]),
                 [description, 
                 text_ [
                     Svg.Attributes.textAnchor "start",
