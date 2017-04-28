@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 var ws = require('ws');
 function drawServ(wss) {
 	const maxPoints = 100;
@@ -15,9 +16,7 @@ function drawServ(wss) {
 		if (valid.test(data)) {
 			const point = "p" + data;
 			lastPoints.push(point);
-			if (lastPoints.length >= maxPoints) {
-				lastPoints.splice(0, lastPoints.length - maxPoints);
-			}
+			if (lastPoints.length >= maxPoints) {lastPoints.shift();}
 			broadcastExclusive(point);
 		}
 	}
