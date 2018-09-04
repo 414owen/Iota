@@ -1,6 +1,9 @@
 # Iota
 
-Play with Iota here: [https://owen.cafe/iota/](https://owen.cafe/iota/)
+IOTA HAS BEEN DISCONTINUED
+
+Sorry, I decided to shutdown the VPS running the Iota server.
+This repository is still here for preservation purposes.
 
 ## Technologies
 
@@ -8,4 +11,4 @@ Play with Iota here: [https://owen.cafe/iota/](https://owen.cafe/iota/)
 * Backend: [Node.js](https://nodejs.org/en/)
 * Networking: [WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
 
-Elm is a lovely language, and made this project a pleasure to create <3
+Elm is a lovely language, and made this project a pleasure to create
