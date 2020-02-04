@@ -9,6 +9,6 @@
   "author": "Owen Shephero",
   "license": "GPL-3.0",
   "dependencies": {
-    "ws": "^2.2.0"
+    "ws": "^7.2.1"
   }
 }
